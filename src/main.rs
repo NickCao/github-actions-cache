@@ -1,8 +1,11 @@
 use std::i64;
 
-use github_actions_cache::github::actions::results::api::v1::{
-    ArtifactServiceClient, CacheServiceClient, CreateArtifactRequest, CreateCacheEntryRequest,
-    FinalizeArtifactRequest, FinalizeCacheEntryUploadRequest, GetCacheEntryDownloadUrlRequest,
+use github_actions_cache::{
+    github::actions::results::api::v1::{
+        ArtifactServiceClient, CacheServiceClient, CreateArtifactRequest, CreateCacheEntryRequest,
+        FinalizeArtifactRequest, FinalizeCacheEntryUploadRequest, GetCacheEntryDownloadUrlRequest,
+    },
+    google::protobuf::StringValue,
 };
 use jwt::{Claims, Header, Token};
 use twirp::{
@@ -90,7 +93,9 @@ pub async fn main() {
                 workflow_job_run_backend_id: workflow_job_run_backend_id.clone(),
                 name: name.clone(),
                 size: i64::MAX,
-                hash: None,
+                hash: Some(StringValue {
+                    value: "1234".to_string(),
+                }),
             })
             .await
             .unwrap();
