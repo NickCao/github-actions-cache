@@ -74,7 +74,7 @@ pub async fn main() {
                 workflow_job_run_backend_id,
                 name: "test".to_string(),
                 expires_at: None,
-                version: 1,
+                version: 4,
             })
             .await
             .unwrap();
