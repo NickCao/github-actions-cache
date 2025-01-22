@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+jwt = "0.16.0"
 prost = "0.13.4"
 reqwest = { version = "0.12.12", features = ["rustls-tls-webpki-roots"], default-features = false }
 serde = { version = "1.0.217", features = ["derive"] }

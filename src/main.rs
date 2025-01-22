@@ -2,6 +2,7 @@ use github_actions_cache::github::actions::results::api::v1::{
     CacheServiceClient, CreateCacheEntryRequest, FinalizeCacheEntryUploadRequest,
     GetCacheEntryDownloadUrlRequest,
 };
+use jwt::{Claims, Header, Token};
 use twirp::{
     async_trait,
     reqwest::{Request, Response},
@@ -42,12 +43,17 @@ pub async fn main() {
         Url::parse(&service_url).unwrap(),
         twirp::reqwest::Client::default(),
     )
-    .with(Bearer { token })
+    .with(Bearer {
+        token: token.clone(),
+    })
     .build()
     .unwrap();
 
     let key = "foo".to_string();
     let version = "bar".to_string();
+
+    let parsed: Token<Header, Claims, _> = Token::parse_unverified(&token).unwrap();
+    dbg!(parsed.claims());
 
     let resp = client
         .create_cache_entry(CreateCacheEntryRequest {
