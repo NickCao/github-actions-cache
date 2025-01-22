@@ -88,7 +88,7 @@ pub async fn main() {
             .unwrap();
         assert!(resp.ok);
 
-        BlobClient::from_sas_url(resp.signed_upload_url)
+        BlobClient::from_sas_url(&Url::parse(&resp.signed_upload_url).unwrap())
             .unwrap()
             .put_block_blob("test")
             .await
