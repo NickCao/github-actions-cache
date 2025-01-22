@@ -321,6 +321,7 @@ dependencies = [
  "prost",
  "prost-build",
  "serde",
+ "tokio",
  "twirp",
  "twirp-build",
 ]
