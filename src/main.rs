@@ -1,6 +1,6 @@
 use github_actions_cache::github::actions::results::api::v1::{
     ArtifactServiceClient, CacheServiceClient, CreateArtifactRequest, CreateCacheEntryRequest,
-    FinalizeCacheEntryUploadRequest, GetCacheEntryDownloadUrlRequest,
+    FinalizeArtifactRequest, FinalizeCacheEntryUploadRequest, GetCacheEntryDownloadUrlRequest,
 };
 use jwt::{Claims, Header, Token};
 use twirp::{
@@ -68,20 +68,32 @@ pub async fn main() {
         let workflow_run_backend_id = parts[1].to_string();
         let workflow_job_run_backend_id = parts[2].to_string();
 
+        let name = "test".to_string();
+
         let resp = client
             .create_artifact(CreateArtifactRequest {
-                workflow_run_backend_id,
-                workflow_job_run_backend_id,
-                name: "test".to_string(),
+                workflow_run_backend_id: workflow_run_backend_id.clone(),
+                workflow_job_run_backend_id: workflow_job_run_backend_id.clone(),
+                name: name.clone(),
                 expires_at: None,
                 version: 4,
             })
             .await
             .unwrap();
         assert!(resp.ok);
-    }
 
-    dbg!(parsed.claims());
+        let resp = client
+            .finalize_artifact(FinalizeArtifactRequest {
+                workflow_run_backend_id: workflow_run_backend_id.clone(),
+                workflow_job_run_backend_id: workflow_job_run_backend_id.clone(),
+                name: name.clone(),
+                size: 1,
+                hash: None,
+            })
+            .await
+            .unwrap();
+        assert!(resp.ok);
+    }
 
     let resp = client
         .create_cache_entry(CreateCacheEntryRequest {
