@@ -88,13 +88,6 @@ pub async fn main() {
             .unwrap();
         assert!(resp.ok);
 
-        BlobClient::from_sas_url(&Url::parse(&resp.signed_upload_url).unwrap())
-            .unwrap()
-            .put_block_blob("test")
-            .content_type(BlobContentType::from_static("text/plain"))
-            .await
-            .unwrap();
-
         let resp = client
             .finalize_artifact(FinalizeArtifactRequest {
                 workflow_run_backend_id: workflow_run_backend_id.clone(),
@@ -108,6 +101,13 @@ pub async fn main() {
             .await
             .unwrap();
         assert!(resp.ok);
+
+        BlobClient::from_sas_url(&Url::parse(&resp.signed_upload_url).unwrap())
+            .unwrap()
+            .put_block_blob("test")
+            .content_type(BlobContentType::from_static("text/plain"))
+            .await
+            .unwrap();
     }
 
     let resp = client
