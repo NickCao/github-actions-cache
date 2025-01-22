@@ -36,6 +36,8 @@ pub async fn main() {
     let token = std::env::var("ACTIONS_RUNTIME_TOKEN").unwrap();
     let service_url = std::env::var("ACTIONS_RESULTS_URL").unwrap();
 
+    dbg!(&service_url);
+
     let client = ClientBuilder::new(
         Url::parse(&service_url).unwrap(),
         twirp::reqwest::Client::default(),
