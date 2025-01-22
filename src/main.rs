@@ -1,5 +1,6 @@
 use github_actions_cache::actions::results::api::v1::{
     CacheServiceClient, CreateCacheEntryRequest, FinalizeCacheEntryUploadRequest,
+    GetCacheEntryDownloadUrlRequest,
 };
 use twirp::{
     async_trait,
@@ -73,6 +74,20 @@ pub async fn main() {
 
     if !resp.ok {
         panic!("failed to finalize cache entry");
+    }
+
+    let resp = client
+        .get_cache_entry_download_url(GetCacheEntryDownloadUrlRequest {
+            key: key.clone(),
+            restore_keys: vec![],
+            version: version.clone(),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+
+    if !resp.ok {
+        panic!("failed to get cache entry download url");
     }
 
     dbg!(resp);
