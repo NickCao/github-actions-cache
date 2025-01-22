@@ -40,7 +40,7 @@ pub async fn main() {
     dbg!(&service_url);
 
     let client = ClientBuilder::new(
-        Url::parse(&service_url).unwrap(),
+        Url::parse(&service_url).unwrap().join("twirp").unwrap(),
         twirp::reqwest::Client::default(),
     )
     .with(Bearer {
@@ -78,7 +78,7 @@ pub async fn main() {
             })
             .await
             .unwrap();
-        dbg!(resp);
+        assert!(resp.ok);
     }
 
     dbg!(parsed.claims());
