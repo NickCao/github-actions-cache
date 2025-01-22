@@ -1,3 +1,5 @@
+use std::i64;
+
 use github_actions_cache::github::actions::results::api::v1::{
     ArtifactServiceClient, CacheServiceClient, CreateArtifactRequest, CreateCacheEntryRequest,
     FinalizeArtifactRequest, FinalizeCacheEntryUploadRequest, GetCacheEntryDownloadUrlRequest,
@@ -87,7 +89,7 @@ pub async fn main() {
                 workflow_run_backend_id: workflow_run_backend_id.clone(),
                 workflow_job_run_backend_id: workflow_job_run_backend_id.clone(),
                 name: name.clone(),
-                size: 1,
+                size: i64::MAX,
                 hash: None,
             })
             .await
