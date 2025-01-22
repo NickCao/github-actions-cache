@@ -1,6 +1,6 @@
 use github_actions_cache::github::actions::results::api::v1::{
-    CacheServiceClient, CreateCacheEntryRequest, FinalizeCacheEntryUploadRequest,
-    GetCacheEntryDownloadUrlRequest,
+    ArtifactServiceClient, CacheServiceClient, CreateArtifactRequest, CreateCacheEntryRequest,
+    FinalizeCacheEntryUploadRequest, GetCacheEntryDownloadUrlRequest,
 };
 use jwt::{Claims, Header, Token};
 use twirp::{
@@ -53,6 +53,34 @@ pub async fn main() {
     let version = "bar".to_string();
 
     let parsed: Token<Header, Claims, _> = Token::parse_unverified(&token).unwrap();
+    for scope in parsed
+        .claims()
+        .private
+        .get("scp")
+        .unwrap()
+        .to_string()
+        .split(" ")
+    {
+        let parts: Vec<&str> = scope.split(":").collect();
+        if parts.len() != 3 || parts[0] != "Actions.Results" {
+            continue;
+        }
+        let workflow_run_backend_id = parts[1].to_string();
+        let workflow_job_run_backend_id = parts[2].to_string();
+
+        let resp = client
+            .create_artifact(CreateArtifactRequest {
+                workflow_run_backend_id,
+                workflow_job_run_backend_id,
+                name: "test".to_string(),
+                expires_at: None,
+                version: 1,
+            })
+            .await
+            .unwrap();
+        dbg!(resp);
+    }
+
     dbg!(parsed.claims());
 
     let resp = client
