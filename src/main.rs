@@ -26,6 +26,13 @@ impl Middleware for Bearer {
 
 #[tokio::main]
 pub async fn main() {
+    let version = if std::env::var("ACTIONS_CACHE_SERVICE_V2").is_ok() {
+        2
+    } else {
+        1
+    };
+    println!("version: {version}");
+
     let token = std::env::var("ACTIONS_RUNTIME_TOKEN").unwrap();
     let service_url = std::env::var("ACTIONS_RESULTS_URL").unwrap();
     let repo_id = std::env::var("GITHUB_REPOSITORY_ID")
