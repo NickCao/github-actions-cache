@@ -8,4 +8,5 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: arduino/setup-protoc@v3
-      - uses: ./
+      - run: |
+          cargo run
