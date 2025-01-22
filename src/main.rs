@@ -1,4 +1,4 @@
-use github_actions_cache::actions::results::api::v1::{
+use github_actions_cache::github::actions::results::api::v1::{
     CacheServiceClient, CreateCacheEntryRequest, FinalizeCacheEntryUploadRequest,
     GetCacheEntryDownloadUrlRequest,
 };

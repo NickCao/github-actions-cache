@@ -1154,7 +1154,7 @@ dependencies = [
 [[package]]
 name = "twirp-build"
 version = "0.7.0"
-source = "git+https://github.com/github/twirp-rs#67dfa1f6a724c48c82821aae13b55f0054e71d6a"
+source = "git+https://github.com/NickCao/twirp-rs#816ea20b983d174e5570a50fd879a4abf4f452b6"
 dependencies = [
  "prost-build",
 ]
