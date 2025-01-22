@@ -1,5 +1,6 @@
 use std::i64;
 
+use azure_storage_blobs::prelude::BlobClient;
 use github_actions_cache::{
     github::actions::results::api::v1::{
         ArtifactServiceClient, CacheServiceClient, CreateArtifactRequest, CreateCacheEntryRequest,
@@ -86,6 +87,12 @@ pub async fn main() {
             .await
             .unwrap();
         assert!(resp.ok);
+
+        BlobClient::from_sas_url(resp.signed_upload_url)
+            .unwrap()
+            .put_block_blob("test")
+            .await
+            .unwrap();
 
         let resp = client
             .finalize_artifact(FinalizeArtifactRequest {
