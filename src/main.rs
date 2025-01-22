@@ -28,6 +28,11 @@ impl Middleware for Bearer {
 pub async fn main() {
     let token = std::env::var("ACTIONS_RUNTIME_TOKEN").unwrap();
     let service_url = std::env::var("ACTIONS_RESULTS_URL").unwrap();
+    let repo_id = std::env::var("GITHUB_REPOSITORY_ID")
+        .unwrap()
+        .parse()
+        .unwrap();
+
     let client = ClientBuilder::new(
         Url::parse(&service_url).unwrap(),
         twirp::reqwest::Client::default(),
@@ -35,19 +40,21 @@ pub async fn main() {
     .with(Bearer { token })
     .build()
     .unwrap();
+
     let resp = client
         .create_cache_entry(CreateCacheEntryRequest {
             metadata: Some(CacheMetadata {
-                repository_id: 0,
+                repository_id: repo_id,
                 scope: vec![CacheScope {
                     scope: "".to_string(),
-                    permission: 0,
+                    permission: 1 | 2, // Read | Write
                 }],
             }),
-            key: "".to_string(),
-            version: "".to_string(),
+            key: "foo".to_string(),
+            version: "bar".to_string(),
         })
         .await
         .unwrap();
+
     dbg!(resp);
 }
