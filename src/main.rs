@@ -1,6 +1,6 @@
 use std::i64;
 
-use azure_storage_blobs::prelude::{BlobClient, BlobContentDisposition};
+use azure_storage_blobs::prelude::{BlobClient, BlobContentDisposition, BlobContentType};
 use github_actions_cache::{
     github::actions::results::api::v1::{
         ArtifactServiceClient, CacheServiceClient, CreateArtifactRequest, CreateCacheEntryRequest,
@@ -91,9 +91,7 @@ pub async fn main() {
         BlobClient::from_sas_url(&Url::parse(&resp.signed_upload_url).unwrap())
             .unwrap()
             .put_block_blob("test")
-            .content_disposition(BlobContentDisposition::from_static(
-                "attachment; filename=\"test.jpg\"",
-            ))
+            .content_type(BlobContentType::from_static("text/plain"))
             .await
             .unwrap();
 
