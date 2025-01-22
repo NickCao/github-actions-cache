@@ -76,7 +76,7 @@ pub async fn main() {
 
         let name = "test".to_string();
 
-        let resp = client
+        let resp1 = client
             .create_artifact(CreateArtifactRequest {
                 workflow_run_backend_id: workflow_run_backend_id.clone(),
                 workflow_job_run_backend_id: workflow_job_run_backend_id.clone(),
@@ -86,7 +86,7 @@ pub async fn main() {
             })
             .await
             .unwrap();
-        assert!(resp.ok);
+        assert!(resp1.ok);
 
         let resp = client
             .finalize_artifact(FinalizeArtifactRequest {
@@ -102,7 +102,7 @@ pub async fn main() {
             .unwrap();
         assert!(resp.ok);
 
-        BlobClient::from_sas_url(&Url::parse(&resp.signed_upload_url).unwrap())
+        BlobClient::from_sas_url(&Url::parse(&resp1.signed_upload_url).unwrap())
             .unwrap()
             .put_block_blob("test")
             .content_type(BlobContentType::from_static("text/plain"))
