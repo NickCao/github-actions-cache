@@ -1,6 +1,5 @@
-use github_actions_cache::actions::results::{
-    api::v1::{CacheServiceClient, CreateCacheEntryRequest},
-    entities::v1::{CacheMetadata, CacheScope},
+use github_actions_cache::actions::results::api::v1::{
+    CacheServiceClient, CreateCacheEntryRequest, FinalizeCacheEntryUploadRequest,
 };
 use twirp::{
     async_trait,
@@ -35,10 +34,6 @@ pub async fn main() {
 
     let token = std::env::var("ACTIONS_RUNTIME_TOKEN").unwrap();
     let service_url = std::env::var("ACTIONS_RESULTS_URL").unwrap();
-    let repo_id = std::env::var("GITHUB_REPOSITORY_ID")
-        .unwrap()
-        .parse()
-        .unwrap();
 
     let client = ClientBuilder::new(
         Url::parse(&service_url).unwrap(),
@@ -48,20 +43,37 @@ pub async fn main() {
     .build()
     .unwrap();
 
+    let key = "foo".to_string();
+    let version = "bar".to_string();
+
     let resp = client
         .create_cache_entry(CreateCacheEntryRequest {
-            metadata: Some(CacheMetadata {
-                repository_id: repo_id,
-                scope: vec![CacheScope {
-                    scope: "".to_string(),
-                    permission: 1 | 2, // Read | Write
-                }],
-            }),
-            key: "foo".to_string(),
-            version: "bar".to_string(),
+            key: key.clone(),
+            version: version.clone(),
+            ..Default::default()
         })
         .await
         .unwrap();
+
+    if !resp.ok {
+        panic!("failed to create cache entry");
+    }
+
+    // TODO: upload file to resp.signed_upload_url;
+
+    let resp = client
+        .finalize_cache_entry_upload(FinalizeCacheEntryUploadRequest {
+            key: key.clone(),
+            version: version.clone(),
+            size_bytes: 100, // FIXME
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+
+    if !resp.ok {
+        panic!("failed to finalize cache entry");
+    }
 
     dbg!(resp);
 }
