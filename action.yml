@@ -4,4 +4,6 @@ runs:
   steps:
     - name: Start Github Actions Cache
       shell: bash
-      run: nix run "$GITHUB_ACTION_PATH" &
+      run: |
+        OUT_PATH=nix build --no-link --print-out-paths "$GITHUB_ACTION_PATH"
+        "$OUT_PATH"/bin/github-actions-cache &
