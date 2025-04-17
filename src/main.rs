@@ -22,6 +22,7 @@ struct AppState {
     client: Client,
     rclient: reqwest::Client,
     version: String,
+    upstream: Url,
 }
 
 async fn upload(
@@ -144,10 +145,22 @@ async fn download(
         })?;
 
     if resp.ok {
-        Ok(Redirect::temporary(&resp.signed_download_url).into_response())
-    } else {
-        Ok((StatusCode::NOT_FOUND, format!("key {} not found", key)).into_response())
+        return Ok(Redirect::temporary(&resp.signed_download_url).into_response());
     }
+
+    Ok(Redirect::temporary(
+        &state
+            .upstream
+            .join(&key)
+            .map_err(|err| {
+                (
+                    StatusCode::IM_A_TEAPOT,
+                    format!("unexpected error: {}", err),
+                )
+            })?
+            .to_string(),
+    )
+    .into_response())
 }
 
 #[derive(clap::Parser, Debug)]
@@ -157,6 +170,8 @@ struct Args {
     actions_runtime_token: String,
     #[arg(env = "ACTIONS_RESULTS_URL")]
     actions_results_url: Url,
+    #[arg(long = "upstream", default_value = "https://cache.nixos.org")]
+    upstream: Url,
 }
 
 #[tokio::main]
@@ -181,6 +196,7 @@ pub async fn main() -> Result<(), Box<dyn Error>> {
             rclient: reqwest::ClientBuilder::default().build()?,
             // sha256(magic-nix-cache)
             version: "b670b214c5d50284dd81a9313516774823699df8ea28162b69ecda3f4362d9bf".to_string(),
+            upstream: args.upstream,
         }));
 
     Ok(axum::serve(TcpListener::bind("127.0.0.1:3000").await?, app).await?)
