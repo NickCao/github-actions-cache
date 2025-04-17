@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use axum::{
     body::Body,
     extract::{Path, State},
@@ -16,6 +14,7 @@ use github_actions_cache::github::actions::results::api::v1::{
 };
 use rand::RngCore;
 use reqwest::{header, StatusCode};
+use std::{error::Error, sync::Arc};
 use tokio::net::TcpListener;
 use twirp::{url::Url, Client, ClientBuilder};
 
@@ -157,40 +156,32 @@ struct Args {
     #[arg(env = "ACTIONS_RUNTIME_TOKEN")]
     actions_runtime_token: String,
     #[arg(env = "ACTIONS_RESULTS_URL")]
-    actions_results_url: String,
+    actions_results_url: Url,
 }
 
 #[tokio::main]
-pub async fn main() {
+pub async fn main() -> Result<(), Box<dyn Error>> {
     let args = Args::parse();
 
     let client = ClientBuilder::new(
-        Url::parse(&args.actions_results_url)
-            .unwrap()
-            .join("twirp/")
-            .unwrap(),
+        args.actions_results_url.join("twirp/")?,
         twirp::reqwest::ClientBuilder::default()
             .default_headers(reqwest::header::HeaderMap::from_iter([(
                 reqwest::header::AUTHORIZATION,
-                format!("Bearer {0}", args.actions_runtime_token)
-                    .try_into()
-                    .unwrap(),
+                format!("Bearer {0}", args.actions_runtime_token).try_into()?,
             )]))
-            .build()
-            .unwrap(),
+            .build()?,
     )
-    .build()
-    .unwrap();
+    .build()?;
 
     let app = Router::new()
         .route("/{*path}", get(download).put(upload))
         .with_state(Arc::new(AppState {
             client,
-            rclient: reqwest::ClientBuilder::default().build().unwrap(),
-            version: "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7".to_string(),
+            rclient: reqwest::ClientBuilder::default().build()?,
+            // sha256(magic-nix-cache)
+            version: "b670b214c5d50284dd81a9313516774823699df8ea28162b69ecda3f4362d9bf".to_string(),
         }));
 
-    axum::serve(TcpListener::bind("127.0.0.1:3000").await.unwrap(), app)
-        .await
-        .unwrap();
+    Ok(axum::serve(TcpListener::bind("127.0.0.1:3000").await?, app).await?)
 }
