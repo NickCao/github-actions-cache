@@ -8,10 +8,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: arduino/setup-protoc@v3
+      - uses: cachix/install-nix-action@v31
       - uses: NickCao/actions-export-envs@main
         id: envs
       - run: |
-          cargo run
+          cargo run &
+          nix copy --to http://127.0.0.1:3000 nixpkgs#hello
         env:
           ACTIONS_RUNTIME_TOKEN: ${{ steps.envs.outputs.ACTIONS_RUNTIME_TOKEN }}
           ACTIONS_RESULTS_URL: ${{ steps.envs.outputs.ACTIONS_RESULTS_URL }}
