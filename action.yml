@@ -2,8 +2,14 @@ name: github-actions-cache
 runs:
   using: "composite"
   steps:
+    - name: Export Env
+      uses: NickCao/actions-export-envs@main
+      id: envs
     - name: Start Github Actions Cache
       shell: bash
       run: |
         OUT_PATH=$(nix build --no-link --print-out-paths "$GITHUB_ACTION_PATH")
         "$OUT_PATH"/bin/github-actions-cache &
+      env:
+        ACTIONS_RUNTIME_TOKEN: ${{ steps.envs.outputs.ACTIONS_RUNTIME_TOKEN }}
+        ACTIONS_RESULTS_URL: ${{ steps.envs.outputs.ACTIONS_RESULTS_URL }}
