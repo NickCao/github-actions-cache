@@ -1,8 +1,3 @@
-pub mod google {
-    pub mod protobuf {
-        include!(concat!(env!("OUT_DIR"), "/google.protobuf.rs"));
-    }
-}
 pub mod github {
     pub mod actions {
         pub mod results {

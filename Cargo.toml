@@ -4,14 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-azure_storage_blobs = "0.21.0"
-jwt = "0.16.0"
-prost = "0.13.4"
-reqwest = { version = "0.12.12", features = ["rustls-tls-webpki-roots"], default-features = false }
+axum = "0.8.3"
+prost = "0.13.5"
+prost-types = "0.13.5"
+rand = "0.9.0"
+reqwest = { version = "0.12.12", features = ["rustls-tls-webpki-roots", "stream"], default-features = false }
 serde = { version = "1.0.217", features = ["derive"] }
 tokio = { version = "1.43.0", features = ["rt-multi-thread"] }
-twirp = { git = "https://github.com/github/twirp-rs", version = "0.7.0" }
+twirp = { git = "https://github.com/github/twirp-rs" }
 
 [build-dependencies]
-prost-build = "0.13.4"
-twirp-build = { version = "0.7.0", git = "https://github.com/NickCao/twirp-rs" }
+prost-build = "0.13.5"
+twirp-build = { git = "https://github.com/github/twirp-rs" }

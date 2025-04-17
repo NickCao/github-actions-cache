@@ -1,20 +1,30 @@
-use std::i64;
+use std::sync::Arc;
 
-use azure_storage_blobs::prelude::{BlobClient, BlobContentDisposition, BlobContentType};
-use github_actions_cache::{
-    github::actions::results::api::v1::{
-        ArtifactServiceClient, CacheServiceClient, CreateArtifactRequest, CreateCacheEntryRequest,
-        FinalizeArtifactRequest, FinalizeCacheEntryUploadRequest, GetCacheEntryDownloadUrlRequest,
-    },
-    google::protobuf::StringValue,
+use axum::{
+    body::Body,
+    extract::{Path, State},
+    http::HeaderMap,
+    response::{IntoResponse, Redirect},
+    routing::get,
+    Router,
 };
-use jwt::{Claims, Header, Token};
+use github_actions_cache::github::actions::results::api::v1::{
+    CacheServiceClient, CreateCacheEntryRequest, FinalizeCacheEntryUploadRequest,
+    GetCacheEntryDownloadUrlRequest,
+};
+use rand::RngCore;
+use reqwest::{header, StatusCode};
+use tokio::net::TcpListener;
 use twirp::{
     async_trait,
     reqwest::{Request, Response},
     url::Url,
-    ClientBuilder, Middleware, Next,
+    Client, ClientBuilder, Middleware, Next,
 };
+
+const ACTIONS_CACHE_SERVICE_V2: &str = "ACTIONS_CACHE_SERVICE_V2";
+const ACTIONS_RUNTIME_TOKEN: &str = "ACTIONS_RUNTIME_TOKEN";
+const ACTIONS_RESULTS_URL: &str = "ACTIONS_RESULTS_URL";
 
 struct Bearer {
     token: String,
@@ -27,23 +37,102 @@ impl Middleware for Bearer {
             "Authorization",
             format!("Bearer {0}", self.token).try_into()?,
         );
+        req.headers_mut()
+            .append("User-Agent", "actions/cache-4.0.3".try_into()?);
         next.run(req).await
+    }
+}
+
+struct AppState {
+    client: Client,
+    version: String,
+}
+
+async fn upload(
+    State(state): State<Arc<AppState>>,
+    Path(path): Path<String>,
+    headers: HeaderMap,
+    body: Body,
+) -> impl IntoResponse {
+    let key = format!("{}-{}", path, rand::rng().next_u64());
+    let resp = state
+        .client
+        .create_cache_entry(CreateCacheEntryRequest {
+            key: key.clone(),
+            version: state.version.clone(),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    if !resp.ok {
+        return (StatusCode::INTERNAL_SERVER_ERROR, "")
+            .into_response()
+            .into_response();
+    }
+
+    let res = reqwest::ClientBuilder::default()
+        .build()
+        .unwrap()
+        .put(&resp.signed_upload_url)
+        .header(
+            header::CONTENT_LENGTH,
+            headers.get(header::CONTENT_LENGTH).unwrap(),
+        )
+        // .headers(headers.clone())
+        .header("x-ms-blob-type", "BlockBlob")
+        .body(reqwest::Body::wrap_stream(body.into_data_stream()))
+        .send()
+        .await
+        .unwrap();
+
+    // TODO: check
+
+    state
+        .client
+        .finalize_cache_entry_upload(FinalizeCacheEntryUploadRequest {
+            key: key.clone(),
+            version: state.version.clone(),
+            size_bytes: headers
+                .get(header::CONTENT_LENGTH)
+                .map(|size| size.to_str().unwrap().parse().unwrap_or(0))
+                .unwrap_or(0),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+
+    (StatusCode::CREATED, "").into_response()
+}
+
+async fn download(
+    State(state): State<Arc<AppState>>,
+    Path(path): Path<String>,
+) -> impl IntoResponse {
+    let resp = state
+        .client
+        .get_cache_entry_download_url(GetCacheEntryDownloadUrlRequest {
+            key: path.clone(),
+            restore_keys: vec![path.clone()],
+            version: state.version.clone(),
+            ..Default::default()
+        })
+        .await
+        .unwrap();
+    if resp.ok {
+        Redirect::temporary(&resp.signed_download_url).into_response()
+    } else {
+        (StatusCode::NOT_FOUND, "").into_response()
     }
 }
 
 #[tokio::main]
 pub async fn main() {
-    let version = if std::env::var("ACTIONS_CACHE_SERVICE_V2").is_ok() {
-        2
-    } else {
-        1
+    if std::env::var(ACTIONS_CACHE_SERVICE_V2).is_err() {
+        unimplemented!()
     };
-    println!("version: {version}");
 
-    let token = std::env::var("ACTIONS_RUNTIME_TOKEN").unwrap();
-    let service_url = std::env::var("ACTIONS_RESULTS_URL").unwrap();
-
-    dbg!(&service_url);
+    let token = std::env::var(ACTIONS_RUNTIME_TOKEN).unwrap();
+    let service_url = std::env::var(ACTIONS_RESULTS_URL).unwrap();
 
     let client = ClientBuilder::new(
         Url::parse(&service_url).unwrap().join("twirp/").unwrap(),
@@ -55,103 +144,14 @@ pub async fn main() {
     .build()
     .unwrap();
 
-    let key = "foo".to_string();
-    let version = "bar".to_string();
+    let app = Router::new()
+        .route("/{*path}", get(download).put(upload))
+        .with_state(Arc::new(AppState {
+            client,
+            version: "87428fc522803d31065e7bce3cf03fe475096631e5e07bbd7a0fde60c4cf25c7".to_string(),
+        }));
 
-    let parsed: Token<Header, Claims, _> = Token::parse_unverified(&token).unwrap();
-    for scope in parsed
-        .claims()
-        .private
-        .get("scp")
-        .unwrap()
-        .to_string()
-        .split(" ")
-    {
-        let parts: Vec<&str> = scope.split(":").collect();
-        if parts.len() != 3 || parts[0] != "Actions.Results" {
-            continue;
-        }
-        let workflow_run_backend_id = parts[1].to_string();
-        let workflow_job_run_backend_id = parts[2].to_string();
-
-        let name = "test".to_string();
-
-        let resp1 = client
-            .create_artifact(CreateArtifactRequest {
-                workflow_run_backend_id: workflow_run_backend_id.clone(),
-                workflow_job_run_backend_id: workflow_job_run_backend_id.clone(),
-                name: name.clone(),
-                expires_at: None,
-                version: 4,
-            })
-            .await
-            .unwrap();
-        assert!(resp1.ok);
-
-        let resp = client
-            .finalize_artifact(FinalizeArtifactRequest {
-                workflow_run_backend_id: workflow_run_backend_id.clone(),
-                workflow_job_run_backend_id: workflow_job_run_backend_id.clone(),
-                name: name.clone(),
-                size: i64::MAX,
-                hash: Some(StringValue {
-                    value: "1234".to_string(),
-                }),
-            })
-            .await
-            .unwrap();
-        assert!(resp.ok);
-
-        BlobClient::from_sas_url(&Url::parse(&resp1.signed_upload_url).unwrap())
-            .unwrap()
-            .put_block_blob("test")
-            .content_type(BlobContentType::from_static("text/plain"))
-            .await
-            .unwrap();
-    }
-
-    let resp = client
-        .create_cache_entry(CreateCacheEntryRequest {
-            key: key.clone(),
-            version: version.clone(),
-            ..Default::default()
-        })
+    axum::serve(TcpListener::bind("127.0.0.1:3000").await.unwrap(), app)
         .await
         .unwrap();
-
-    if !resp.ok {
-        panic!("failed to create cache entry");
-    }
-
-    // TODO: upload file to resp.signed_upload_url;
-
-    let resp = client
-        .finalize_cache_entry_upload(FinalizeCacheEntryUploadRequest {
-            key: key.clone(),
-            version: version.clone(),
-            size_bytes: 100, // FIXME
-            ..Default::default()
-        })
-        .await
-        .unwrap();
-
-    if !resp.ok {
-        panic!("failed to finalize cache entry");
-    }
-
-    let resp = client
-        .get_cache_entry_download_url(GetCacheEntryDownloadUrlRequest {
-            key: key.clone(),
-            restore_keys: vec![],
-            version: version.clone(),
-            ..Default::default()
-        })
-        .await
-        .unwrap();
-
-    if !resp.ok {
-        panic!("failed to get cache entry download url");
-    }
-
-    dbg!(resp);
 }
