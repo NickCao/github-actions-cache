@@ -17,29 +17,7 @@ use github_actions_cache::github::actions::results::api::v1::{
 use rand::RngCore;
 use reqwest::{header, StatusCode};
 use tokio::net::TcpListener;
-use twirp::{
-    async_trait,
-    reqwest::{Request, Response},
-    url::Url,
-    Client, ClientBuilder, Middleware, Next,
-};
-
-struct Bearer {
-    token: String,
-}
-
-#[async_trait::async_trait]
-impl Middleware for Bearer {
-    async fn handle(&self, mut req: Request, next: Next<'_>) -> twirp::client::Result<Response> {
-        req.headers_mut().append(
-            "Authorization",
-            format!("Bearer {0}", self.token).try_into()?,
-        );
-        req.headers_mut()
-            .append("User-Agent", "actions/cache-4.0.3".try_into()?);
-        next.run(req).await
-    }
-}
+use twirp::{url::Url, Client, ClientBuilder};
 
 struct AppState {
     client: Client,
@@ -191,11 +169,16 @@ pub async fn main() {
             .unwrap()
             .join("twirp/")
             .unwrap(),
-        twirp::reqwest::Client::default(),
+        twirp::reqwest::ClientBuilder::default()
+            .default_headers(reqwest::header::HeaderMap::from_iter([(
+                reqwest::header::AUTHORIZATION,
+                format!("Bearer {0}", args.actions_runtime_token)
+                    .try_into()
+                    .unwrap(),
+            )]))
+            .build()
+            .unwrap(),
     )
-    .with(Bearer {
-        token: args.actions_runtime_token,
-    })
     .build()
     .unwrap();
 
