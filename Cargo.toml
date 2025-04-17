@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 axum = "0.8.3"
+clap = { version = "4.5.36", features = ["env", "derive"] }
 prost = "0.13.5"
 prost-types = "0.13.5"
 rand = "0.9.0"

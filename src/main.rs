@@ -9,6 +9,7 @@ use axum::{
     routing::get,
     Router,
 };
+use clap::Parser;
 use github_actions_cache::github::actions::results::api::v1::{
     CacheServiceClient, CreateCacheEntryRequest, FinalizeCacheEntryUploadRequest,
     GetCacheEntryDownloadUrlRequest,
@@ -22,10 +23,6 @@ use twirp::{
     url::Url,
     Client, ClientBuilder, Middleware, Next,
 };
-
-const ACTIONS_CACHE_SERVICE_V2: &str = "ACTIONS_CACHE_SERVICE_V2";
-const ACTIONS_RUNTIME_TOKEN: &str = "ACTIONS_RUNTIME_TOKEN";
-const ACTIONS_RESULTS_URL: &str = "ACTIONS_RESULTS_URL";
 
 struct Bearer {
     token: String,
@@ -176,21 +173,28 @@ async fn download(
     }
 }
 
+#[derive(clap::Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    #[arg(env = "ACTIONS_RUNTIME_TOKEN")]
+    actions_runtime_token: String,
+    #[arg(env = "ACTIONS_RESULTS_URL")]
+    actions_results_url: String,
+}
+
 #[tokio::main]
 pub async fn main() {
-    if std::env::var(ACTIONS_CACHE_SERVICE_V2).is_err() {
-        unimplemented!()
-    };
-
-    let token = std::env::var(ACTIONS_RUNTIME_TOKEN).unwrap();
-    let service_url = std::env::var(ACTIONS_RESULTS_URL).unwrap();
+    let args = Args::parse();
 
     let client = ClientBuilder::new(
-        Url::parse(&service_url).unwrap().join("twirp/").unwrap(),
+        Url::parse(&args.actions_results_url)
+            .unwrap()
+            .join("twirp/")
+            .unwrap(),
         twirp::reqwest::Client::default(),
     )
     .with(Bearer {
-        token: token.clone(),
+        token: args.actions_runtime_token,
     })
     .build()
     .unwrap();
