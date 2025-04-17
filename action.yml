@@ -1,0 +1,7 @@
+name: github-actions-cache
+runs:
+  using: "composite"
+  steps:
+    - name: Start Github Actions Cache
+      shell: bash
+      run: nix run "$GITHUB_ACTION_PATH" &
