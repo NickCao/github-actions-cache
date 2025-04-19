@@ -8,6 +8,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: mlugg/setup-zig@v1
+    - uses: arduino/setup-protoc@v3
     - uses: cargo-bins/cargo-binstall@main
     - uses: goreleaser/goreleaser-action@v6
       with:
