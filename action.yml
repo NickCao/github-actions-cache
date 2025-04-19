@@ -1,9 +1,9 @@
 name: github-actions-cache
 inputs:
-  release:
-    description: "release to use for binary"
+  repo:
+    description: "repo to use for binary"
     required: true
-    default: main
+    default: NickCao/github-actions-cache
 runs:
   using: "composite"
   steps:
@@ -13,8 +13,10 @@ runs:
     - name: Start Github Actions Cache
       shell: bash
       run: |
-        OUT_PATH=$(nix build --no-link --print-out-paths "$GITHUB_ACTION_PATH")
-        "$OUT_PATH"/bin/github-actions-cache &
+        curl -o /tmp/github-actions-cache \
+          https://github.com/${{ inputs.repo }}/releases/latest/download/github-actions-cache_$(go env GOOS)_$(go env GOARCH)
+        chmod +x /tmp/github-actions-cache
+        /tmp/github-actions-cache &
       env:
         ACTIONS_RUNTIME_TOKEN: ${{ steps.envs.outputs.ACTIONS_RUNTIME_TOKEN }}
         ACTIONS_RESULTS_URL: ${{ steps.envs.outputs.ACTIONS_RESULTS_URL }}
