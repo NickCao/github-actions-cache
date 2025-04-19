@@ -12,9 +12,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            require-sigs = false
+            substituters = http://127.0.0.1:3000/ https://cache.nixos.org/
       - uses: ./
       - name: selftest
         run: |
-          nix copy  --no-check-sigs --from http://127.0.0.1:3000 || true
-          nix build
-          nix copy  --no-check-sigs   --to http://127.0.0.1:3000
+          nix copy --to http://127.0.0.1:3000
