@@ -13,7 +13,7 @@ runs:
     - name: Start Github Actions Cache
       shell: bash
       run: |
-        curl -o /tmp/github-actions-cache \
+        curl -L -o /tmp/github-actions-cache \
           https://github.com/${{ inputs.repo }}/releases/latest/download/github-actions-cache_$(go env GOOS)_$(go env GOARCH)
         chmod +x /tmp/github-actions-cache
         /tmp/github-actions-cache &
