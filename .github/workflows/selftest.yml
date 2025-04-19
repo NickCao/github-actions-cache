@@ -15,4 +15,4 @@ jobs:
       - uses: ./
       - name: selftest
         run: |
-          nix copy --to http://127.0.0.1:3000
+          nix copy --extra-substituters http://127.0.0.1:3000 --to http://127.0.0.1:3000
