@@ -10,6 +10,8 @@ jobs:
     - uses: mlugg/setup-zig@v1
     - uses: arduino/setup-protoc@v3
     - uses: cargo-bins/cargo-binstall@main
+    - name: tag
+      run: git tag $(date --iso-8601=seconds)
     - uses: goreleaser/goreleaser-action@v6
       with:
-        args: release --snapshot
+        args: release
