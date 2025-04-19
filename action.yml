@@ -1,4 +1,9 @@
 name: github-actions-cache
+inputs:
+  release:
+    description: "release to use for binary"
+    required: true
+    default: main
 runs:
   using: "composite"
   steps:
