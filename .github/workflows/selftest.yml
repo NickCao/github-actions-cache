@@ -15,5 +15,6 @@ jobs:
       - uses: ./
       - name: selftest
         run: |
-          nix build --no-check-sigs --extra-substituters http://127.0.0.1:3000
-          nix copy  --to http://127.0.0.1:3000
+          nix copy  --no-check-sigs --from http://127.0.0.1:3000 || true
+          nix build
+          nix copy  --no-check-sigs   --to http://127.0.0.1:3000
